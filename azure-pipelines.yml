@@ -1,0 +1,71 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  apiProject: '**/*MervaApi.csproj'
+  dbProject: 'MervaDB/MervaDB.sqlproj'
+  artifactName: 'dotnet-api'
+  dbArtifactName: 'merva-dacpac'
+  publishDir: '$(Build.ArtifactStagingDirectory)/publish'
+
+steps:
+- task: UseDotNet@2
+  displayName: 'Use .NET SDK'
+  inputs:
+    packageType: 'sdk'
+    version: '9.x'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Restore'
+  inputs:
+    command: 'restore'
+    projects: '$(apiProject)'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Build'
+  inputs:
+    command: 'build'
+    projects: '$(apiProject)'
+    arguments: '--configuration $(buildConfiguration) --no-restore'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Test'
+  inputs:
+    command: 'test'
+    projects: '**/*Tests/*.csproj'
+    arguments: '--configuration $(buildConfiguration) --no-build'
+    publishTestResults: true
+
+- task: DotNetCoreCLI@2
+  displayName: 'Publish API'
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: '$(apiProject)'
+    arguments: '--configuration $(buildConfiguration) --output $(publishDir)'
+    zipAfterPublish: false
+
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish API artifact'
+  inputs:
+    targetPath: '$(publishDir)'
+    artifact: '$(artifactName)'
+    publishLocation: 'pipeline'
+
+- task: MSBuild@1
+  displayName: 'Build DB'
+  inputs:
+    solution: '$(dbProject)'
+    msbuildVersion: 'latest'
+    configuration: '$(buildConfiguration)'
+
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish DB artifact'
+  inputs:
+    targetPath: 'MervaDB/bin/$(buildConfiguration)'
+    artifact: '$(dbArtifactName)'
+    publishLocation: 'pipeline'
