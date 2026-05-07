@@ -31,8 +31,7 @@ public class TokensController(IUserTokenService userTokenService, IEncryptionSer
 
     [HttpPost("validate")]
     public async Task<IActionResult> Validate([FromBody] ValidateTokenRequest request)
-    {
-        var test = encryptionService.Encrypt(request.Token);
+    {        
         if (string.IsNullOrWhiteSpace(request.Token))
             return BadRequest("Token is required.");
 

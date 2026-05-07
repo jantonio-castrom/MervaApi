@@ -1,3 +1,4 @@
+using Azure.Core;
 using MervaApi.Data;
 using MervaApi.Encryption.Services;
 using MervaApi.UserTokens.Models;
@@ -7,8 +8,10 @@ namespace MervaApi.UserTokens.Services;
 
 public class UserTokenService(MervaDbContext db, IEncryptionService encryptionService) : IUserTokenService
 {
-    public Task<bool> TokenExistsAsync(string token) =>
-        db.UserTokens.AnyAsync(t => t.Token == token);
+    public Task<bool> TokenExistsAsync(string token) {
+        var hashedValue = encryptionService.ComputeSha256(token);
+        return db.UserTokens.AnyAsync(t => t.EncryptedValueHash == hashedValue);
+    }
 
     public async Task<(UserToken Token, bool IsNew)> RegisterAsync(RegisterTokenRequest request, string? ipAddress)
     {
