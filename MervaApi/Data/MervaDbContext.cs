@@ -61,6 +61,9 @@ public class MervaDbContext(DbContextOptions<MervaDbContext> options) : DbContex
             entity.Property(e => e.Currency).IsRequired().IsFixedLength().HasMaxLength(3).HasDefaultValue("USD");
             entity.Property(e => e.Category).HasMaxLength(100);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.Property(e => e.DeletedAt).IsRequired(false);
+            entity.HasQueryFilter(e => !e.IsDeleted);
             entity.HasOne(e => e.UserToken)
                   .WithMany(t => t.Expenses)
                   .HasForeignKey(e => e.TokenId)
@@ -77,6 +80,9 @@ public class MervaDbContext(DbContextOptions<MervaDbContext> options) : DbContex
             entity.Property(e => e.Currency).IsRequired().IsFixedLength().HasMaxLength(3).HasDefaultValue("USD");
             entity.Property(e => e.Category).HasMaxLength(100);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.Property(e => e.DeletedAt).IsRequired(false);
+            entity.HasQueryFilter(e => !e.IsDeleted);
             entity.HasOne(e => e.UserToken)
                   .WithMany(t => t.Incomes)
                   .HasForeignKey(e => e.TokenId)

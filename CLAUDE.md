@@ -85,10 +85,13 @@ MervaApi/
   - `POST /tokens/validate` — Check token exists
   - `GET /tokens/{token}` — Retrieve token details
 - `ExpensesController`:
-  - `GET /expenses` — Returns all decrypted expenses for the authenticated token, ordered by date desc
+  - `GET /expenses` — Returns all decrypted, non-deleted expenses for the authenticated token, ordered by date desc
   - `POST /expenses` — Add expense (token resolved from `Authorization` header via auth handler)
+  - `DELETE /expenses/{id}` — Soft-deletes the expense (sets `IsDeleted = true`, `DeletedAt = UtcNow`); returns `204 No Content` or `404` if not found / belongs to a different token
 - `IncomesController`:
-  - `GET /incomes` — Returns all decrypted incomes for the authenticated token, ordered by date desc
+  - `POST /incomes` — Add income (token resolved from request body; returns `201 Created` with income ID, or `401` if token unknown)
+  - `GET /incomes` — Returns all decrypted, non-deleted incomes for the authenticated token, ordered by date desc
+  - `DELETE /incomes/{id}` — Soft-deletes the income (sets `IsDeleted = true`, `DeletedAt = UtcNow`); returns `204 No Content` or `404` if not found / belongs to a different token
 
 **Authentication (`Security/AnonymousTokenAuthHandler`):**
 
@@ -105,10 +108,10 @@ All controllers are protected with `[Authorize]`. The `AnonymousTokenId` claim i
 - `UserToken` — Entity; stores encrypted token (`Token` NVARCHAR(64)), `EncryptedValueHash` (VARBINARY(32), unique), and `CreatedAt`. Device fingerprint data lives in `UserDevice` (separate table).
 - `UserDevice` — Entity; 1:N with `UserToken`. Records each distinct device session: `UserAgent`, `Browser`, `BrowserVersion`, `OperatingSystem`, `Language`, `Timezone`, `IpAddress`, `Country`, `Region`, `City`, `Isp`, `ConnectionType`, `RecordedAt`. A new row is only inserted when at least one of the tracked fields differs from the most recent existing record for that token.
 - `UserPreference` — Entity; 1:1 with `UserToken`; fields: `DefaultCurrency` (default `"USD"`), `Theme` (default `"light"`), `UpdatedAt`
-- `Expense` — Entity; 1:N with `UserToken`; `Name`, `Amount`, `Currency`, `Category` stored as encrypted `string` (NVARCHAR(MAX)); `ExpenseDate` (DateOnly), `CreatedAt`
-- `UserIncome` — Entity; 1:N with `UserToken`; same encrypted field pattern as `Expense`; `IncomeDate` (DateOnly), `CreatedAt`
+- `Expense` — Entity; 1:N with `UserToken`; `Name`, `Amount`, `Currency`, `Category` stored as encrypted `string` (NVARCHAR(MAX)); `ExpenseDate` (DateOnly), `CreatedAt`; soft-delete fields `IsDeleted` (bool, default `false`) and `DeletedAt` (DateTime?). A global EF Core query filter in `MervaDbContext` (`HasQueryFilter(e => !e.IsDeleted)`) automatically excludes soft-deleted rows from all queries.
+- `UserIncome` — Entity; 1:N with `UserToken`; same encrypted field pattern as `Expense`; `IncomeDate` (DateOnly), `CreatedAt`; soft-delete fields `IsDeleted` (bool, default `false`) and `DeletedAt` (DateTime?). A global EF Core query filter automatically excludes soft-deleted rows from all queries.
 - `ExpenseResponse` / `IncomeResponse` — Response records returned by GET endpoints with all fields decrypted; `Amount` parsed back to `decimal`
-- Request records (`RegisterTokenRequest`, `ValidateTokenRequest`, `AddExpenseRequest`) live in their feature's `Models/` folder
+- Request records (`RegisterTokenRequest`, `ValidateTokenRequest`, `AddExpenseRequest`, `AddIncomeRequest`) live in their feature's `Models/` folder
 
 **Services:**
 - `EncryptionService` — AES-256-CBC, random IV per call (prepended to ciphertext). Key sourced from `USERTOKEN_KEY` config (Base64-encoded 32-byte value). Also exposes `ComputeSha256` used for token lookups.
@@ -116,8 +119,8 @@ All controllers are protected with `[Authorize]`. The `AnonymousTokenId` claim i
   - `TokenExistsAsync` — checks by encrypted `Token` column
   - `RegisterAsync(request, ipAddress)` — upserts the `UserToken` then conditionally inserts a `UserDevice` row; returns `(UserToken Token, bool IsNew)`. Device insert is skipped when all 11 tracked fields match the most recent device row.
   - `GetByTokenAsync` — looks up by `EncryptedValueHash`, decrypts and returns token value
-- `UserExpenseService` — `AddExpenseAsync` encrypts all fields and inserts; `GetExpensesAsync(tokenId)` fetches all rows ordered by date, decrypts each field, returns `IReadOnlyList<ExpenseResponse>`
-- `UserIncomeService` — `GetIncomesAsync(tokenId)` fetches all income rows ordered by date, decrypts each field, returns `IReadOnlyList<IncomeResponse>`
+- `UserExpenseService` — `AddExpenseAsync` encrypts all fields and inserts; `GetExpensesAsync(tokenId)` fetches all non-deleted rows ordered by date, decrypts each field, returns `IReadOnlyList<ExpenseResponse>` (soft-deleted rows excluded automatically via global query filter); `SoftDeleteExpenseAsync(expenseId, tokenId)` marks the row as deleted and returns `false` if not found or owned by a different token
+- `UserIncomeService` — `AddIncomeAsync` encrypts all fields and inserts; `GetIncomesAsync(tokenId)` fetches all non-deleted rows ordered by date, decrypts each field, returns `IReadOnlyList<IncomeResponse>` (soft-deleted rows excluded automatically via global query filter); `SoftDeleteIncomeAsync(incomeId, tokenId)` marks the row as deleted and returns `false` if not found or owned by a different token
 
 ### Database (`MervaDB/`)
 
@@ -127,7 +130,7 @@ EF Core Code-First with Fluent API configuration in `MervaDbContext`. SQL Server
 |---|---|
 | `UserTokens` | PK `TokenId`; unique index on `Token`; unique constraint on `EncryptedValueHash` |
 | `UserDevices` | PK `DeviceId`; FK `TokenId → UserTokens`; all device fields nullable; `RecordedAt` defaults to `GETUTCDATE()` |
-| `Expenses` | PK `ExpenseId`; FK `TokenId → UserTokens`; all value columns `NVARCHAR(MAX)` (encrypted) |
+| `Expenses` | PK `ExpenseId`; FK `TokenId → UserTokens`; all value columns `NVARCHAR(MAX)` (encrypted); `IsDeleted BIT NOT NULL DEFAULT 0`; `DeletedAt DATETIME2 NULL` |
 | `UserIncomes` | PK `IncomeId`; FK `TokenId → UserTokens`; same column pattern as `Expenses` |
 | `UserPreferences` | PK `PreferenceId`; FK `TokenId → UserTokens` (1:1 unique); `DefaultCurrency` NCHAR(3), `Theme` NVARCHAR(20) |
 

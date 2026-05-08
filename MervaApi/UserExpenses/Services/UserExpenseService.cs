@@ -52,4 +52,18 @@ public class UserExpenseService(MervaDbContext db,IEncryptionService encryptionS
             e.CreatedAt
         )).ToList();
     }
+
+    public async Task<bool> SoftDeleteExpenseAsync(int expenseId, int tokenId)
+    {
+        var expense = await db.Expenses
+            .FirstOrDefaultAsync(e => e.ExpenseId == expenseId && e.TokenId == tokenId);
+
+        if (expense is null)
+            return false;
+
+        expense.IsDeleted = true;
+        expense.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        return true;
+    }
 }

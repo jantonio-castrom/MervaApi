@@ -12,6 +12,8 @@ public class UserIncome
     public string? Category { get; set; }
     public DateOnly IncomeDate { get; set; }
     public DateTime CreatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
 
     public UserToken UserToken { get; set; } = null!;
 }

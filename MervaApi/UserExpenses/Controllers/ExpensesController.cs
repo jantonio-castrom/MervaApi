@@ -19,6 +19,14 @@ public class ExpensesController(IUserExpenseService userExpenseService) : Contro
         return Ok(expenses);
     }
 
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var tokenId = int.Parse(User.FindFirstValue("AnonymousTokenId")!);
+        var deleted = await userExpenseService.SoftDeleteExpenseAsync(id, tokenId);
+        return deleted ? NoContent() : NotFound();
+    }
+
     [HttpPost]
     public async Task<IActionResult> Add([FromBody] AddExpenseRequest request)
     {

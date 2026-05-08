@@ -6,4 +6,5 @@ public interface IUserExpenseService
 {
     Task<Expense?> AddExpenseAsync(AddExpenseRequest request);
     Task<IReadOnlyList<ExpenseResponse>> GetExpensesAsync(int tokenId);
+    Task<bool> SoftDeleteExpenseAsync(int expenseId, int tokenId);
 }
