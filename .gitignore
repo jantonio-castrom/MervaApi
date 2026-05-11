@@ -1,0 +1,17 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/MervaApi/bin/Debug/net9.0
+/MervaApi/.vs
+/.vs
+/MervaApi/obj
+/MervaClient/package-lock.json
+/MervaClient/.vscode
+/MervaDB/bin/Debug
+/MervaDB/obj/Debug
+/.claude
+/MervaDB/MervaDB.dbmdl
+/MervaDB/MervaDB.jfm
+/MervaTests/bin/Debug/net9.0
+/MervaTests/obj
