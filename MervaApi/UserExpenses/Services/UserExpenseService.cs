@@ -1,15 +1,19 @@
 using MervaApi.Data;
 using MervaApi.Encryption.Services;
 using MervaApi.UserExpenses.Models;
+using MervaApi.UserPreferences.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace MervaApi.UserExpenses.Services;
 
-public class UserExpenseService(MervaDbContext db,IEncryptionService encryptionService) : IUserExpenseService
+public class UserExpenseService(
+    MervaDbContext db,
+    IEncryptionService encryptionService,
+    IUserPreferenceService preferenceService) : IUserExpenseService
 {
     public async Task<Expense?> AddExpenseAsync(AddExpenseRequest request)
     {
-        var hashedToken =encryptionService.ComputeSha256(request.Token);
+        var hashedToken = encryptionService.ComputeSha256(request.Token);
         var tokenId = await db.UserTokens
             .AsNoTracking()
             .Where(t => t.EncryptedValueHash == hashedToken)
@@ -26,11 +30,15 @@ public class UserExpenseService(MervaDbContext db,IEncryptionService encryptionS
             Amount      = encryptionService.Encrypt(request.Amount.ToString() ?? "0"),
             Currency    = encryptionService.Encrypt(request.Currency ?? "USD"),
             Category    = encryptionService.Encrypt(request.Category ?? "Other"),
-            ExpenseDate = request.ExpenseDate,
+            ExpenseDate = request.ExpenseDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
         };
 
         db.Expenses.Add(expense);
         await db.SaveChangesAsync();
+
+        if (!string.IsNullOrWhiteSpace(request.FavoriteCurrency))
+            await preferenceService.UpsertFavoriteCurrencyAsync(tokenId.Value, request.FavoriteCurrency);
+
         return expense;
     }
 

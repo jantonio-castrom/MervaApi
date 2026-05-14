@@ -3,6 +3,7 @@ using MervaApi.Encryption.Services;
 using MervaApi.Security;
 using MervaApi.UserExpenses.Services;
 using MervaApi.UserIncomes.Services;
+using MervaApi.UserPreferences.Services;
 using MervaApi.UserTokens.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
@@ -16,9 +17,18 @@ var builder = WebApplication.CreateBuilder(args);
 //);
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy("Development", policy =>
     {
         policy.WithOrigins("http://localhost:4200")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+
+    options.AddPolicy("Production", policy =>
+    {
+        policy.WithOrigins(
+                "https://mervane.com",
+                "https://www.mervane.com")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -31,6 +41,7 @@ builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddScoped<IUserTokenService, UserTokenService>();
 builder.Services.AddScoped<IUserExpenseService, UserExpenseService>();
 builder.Services.AddScoped<IUserIncomeService, UserIncomeService>();
+builder.Services.AddScoped<IUserPreferenceService, UserPreferenceService>();
 builder.Services.AddControllers();
 builder.Services.AddAuthentication("AnonymousToken")
     .AddScheme<AuthenticationSchemeOptions, AnonymousTokenAuthHandler>(
@@ -46,13 +57,14 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseCors("Development");
 }
-
+else {
+    app.UseCors("Production");
+}
 app.UseHttpsRedirection();
-
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
 app.Run();

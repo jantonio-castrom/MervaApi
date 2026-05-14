@@ -6,5 +6,6 @@ public record AddExpenseRequest(
     decimal Amount,
     string? Currency,
     string? Category,
-    DateOnly ExpenseDate
+    DateOnly? ExpenseDate,
+    string? FavoriteCurrency
 );
