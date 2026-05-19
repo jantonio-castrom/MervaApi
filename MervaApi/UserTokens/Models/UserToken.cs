@@ -10,6 +10,7 @@ public class UserToken
     public string Token { get; set; } = string.Empty;
     public byte[] EncryptedValueHash { get; set; } = [];
     public DateTime CreatedAt { get; set; }
+    public bool IsPremium { get; set; }
 
     public ICollection<Expense> Expenses { get; set; } = [];
     public ICollection<UserIncome> Incomes { get; set; } = [];

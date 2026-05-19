@@ -64,9 +64,9 @@ namespace MervaApi.Security
 
                 // Create claims
                 var claims = new[]
-                {                
-                new Claim("AnonymousTokenId", tokenEntity.TokenId.ToString())
-            };
+                {
+                    new Claim("AnonymousTokenId", tokenEntity.TokenId.ToString()),
+                };
 
                 var identity = new ClaimsIdentity(claims, Scheme.Name);
                 var principal = new ClaimsPrincipal(identity);

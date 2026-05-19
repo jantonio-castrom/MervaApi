@@ -1,21 +1,29 @@
 using System.Security.Claims;
+using MervaApi.Configuration;
 using MervaApi.UserExpenses.Models;
 using MervaApi.UserExpenses.Services;
+using MervaApi.UserTokens.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace MervaApi.UserExpenses.Controllers;
 
 [ApiController]
 [Route("[controller]")]
 [Authorize]
-public class ExpensesController(IUserExpenseService userExpenseService) : ControllerBase
+public class ExpensesController(
+    IUserExpenseService userExpenseService,
+    IUserTokenService userTokenService,
+    IOptions<LimitsOptions> limits) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
         var tokenId = int.Parse(User.FindFirstValue("AnonymousTokenId")!);
-        var expenses = await userExpenseService.GetExpensesAsync(tokenId);
+        var isPremium = await userTokenService.GetIsPremiumAsync(tokenId);
+        var fromDate = isPremium ? (DateOnly?)null : DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-3);
+        var expenses = await userExpenseService.GetExpensesAsync(tokenId, fromDate);
         return Ok(expenses);
     }
 
@@ -36,6 +44,14 @@ public class ExpensesController(IUserExpenseService userExpenseService) : Contro
             return BadRequest("Name is required.");
         if (request.Amount <= 0)
             return BadRequest("Amount must be greater than zero.");
+
+        var tokenId = int.Parse(User.FindFirstValue("AnonymousTokenId")!);
+        if (!await userTokenService.GetIsPremiumAsync(tokenId))
+        {
+            var count = await userTokenService.CountTransactionsAsync(tokenId);
+            if (count >= limits.Value.FreeTransactionLimit)
+                return StatusCode(403, "Transaction limit reached. Upgrade to premium for unlimited transactions.");
+        }
 
         var expense = await userExpenseService.AddExpenseAsync(request);
 

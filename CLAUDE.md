@@ -85,7 +85,7 @@ MervaApi/
   - `POST /tokens/validate` — Check token exists
   - `GET /tokens/{token}` — Retrieve token details
 - `ExpensesController`:
-  - `GET /expenses` — Returns all decrypted, non-deleted expenses for the authenticated token, ordered by date desc
+  - `GET /expenses?months={n}` — Returns decrypted, non-deleted expenses for the authenticated token within the last `n` months (default `3`), ordered by date desc
   - `POST /expenses` — Add expense (token resolved from `Authorization` header via auth handler)
   - `DELETE /expenses/{id}` — Soft-deletes the expense (sets `IsDeleted = true`, `DeletedAt = UtcNow`); returns `204 No Content` or `404` if not found / belongs to a different token
 - `IncomesController`:
@@ -119,7 +119,7 @@ All controllers are protected with `[Authorize]`. The `AnonymousTokenId` claim i
   - `TokenExistsAsync` — checks by encrypted `Token` column
   - `RegisterAsync(request, ipAddress)` — upserts the `UserToken` then conditionally inserts a `UserDevice` row; returns `(UserToken Token, bool IsNew)`. Device insert is skipped when all 11 tracked fields match the most recent device row.
   - `GetByTokenAsync` — looks up by `EncryptedValueHash`, decrypts and returns token value
-- `UserExpenseService` — `AddExpenseAsync` encrypts all fields and inserts; `GetExpensesAsync(tokenId)` fetches all non-deleted rows ordered by date, decrypts each field, returns `IReadOnlyList<ExpenseResponse>` (soft-deleted rows excluded automatically via global query filter); `SoftDeleteExpenseAsync(expenseId, tokenId)` marks the row as deleted and returns `false` if not found or owned by a different token
+- `UserExpenseService` — `AddExpenseAsync` encrypts all fields and inserts; `GetExpensesAsync(tokenId, fromDate?)` fetches non-deleted rows on or after `fromDate` (when provided) ordered by date desc, decrypts each field, returns `IReadOnlyList<ExpenseResponse>` (soft-deleted rows excluded automatically via global query filter); `SoftDeleteExpenseAsync(expenseId, tokenId)` marks the row as deleted and returns `false` if not found or owned by a different token
 - `UserIncomeService` — `AddIncomeAsync` encrypts all fields and inserts; `GetIncomesAsync(tokenId)` fetches all non-deleted rows ordered by date, decrypts each field, returns `IReadOnlyList<IncomeResponse>` (soft-deleted rows excluded automatically via global query filter); `SoftDeleteIncomeAsync(incomeId, tokenId)` marks the row as deleted and returns `false` if not found or owned by a different token
 
 ### Database (`MervaDB/`)

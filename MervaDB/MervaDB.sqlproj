@@ -64,6 +64,7 @@
     <Build Include="Tables\UserIncomes.sql" />
     <Build Include="Tables\UserPreferences.sql" />
     <Build Include="Tables\UserDevices.sql" />
+    <Build Include="Tables\Logs.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="LocalPublish.publish.xml" />

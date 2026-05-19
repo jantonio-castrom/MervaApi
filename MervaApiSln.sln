@@ -9,6 +9,8 @@ Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "MervaDB", "MervaDB\MervaDB.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MervaTests", "MervaTests\MervaTests.csproj", "{7A3F1B2E-C4D5-4E6F-A7B8-9C0D1E2F3A4B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MervaFunctions", "MervaFunctions\MervaFunctions.csproj", "{B70C9C74-8044-4EF1-A717-0286B94F19B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,6 +31,10 @@ Global
 		{7A3F1B2E-C4D5-4E6F-A7B8-9C0D1E2F3A4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7A3F1B2E-C4D5-4E6F-A7B8-9C0D1E2F3A4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7A3F1B2E-C4D5-4E6F-A7B8-9C0D1E2F3A4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B70C9C74-8044-4EF1-A717-0286B94F19B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B70C9C74-8044-4EF1-A717-0286B94F19B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B70C9C74-8044-4EF1-A717-0286B94F19B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B70C9C74-8044-4EF1-A717-0286B94F19B1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

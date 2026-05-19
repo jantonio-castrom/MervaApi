@@ -1,6 +1,7 @@
 using Azure.Core;
 using MervaApi.Data;
 using MervaApi.Encryption.Services;
+using MervaApi.UserPreferences.Models;
 using MervaApi.UserTokens.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,6 +35,11 @@ public class UserTokenService(MervaDbContext db, IEncryptionService encryptionSe
                 EncryptedValueHash = hashedValue,
             };
             db.UserTokens.Add(userToken);
+            db.UserPreferences.Add(new UserPreference
+            {
+                UserToken = userToken,
+                UpdatedAt = DateTime.UtcNow,
+            });
             await db.SaveChangesAsync();
             isNew = true;
         }
@@ -100,18 +106,32 @@ public class UserTokenService(MervaDbContext db, IEncryptionService encryptionSe
             || latest.ConnectionType  != request.ConnectionType;
     }
 
-    public async Task<(int TokenId, string Token)?> GetByTokenAsync(string token)
+    public async Task<int> CountTransactionsAsync(int tokenId)
+    {
+        var expenseCount = await db.Expenses.CountAsync(e => e.TokenId == tokenId);
+        var incomeCount  = await db.UserIncomes.CountAsync(i => i.TokenId == tokenId);
+        return expenseCount + incomeCount;
+    }
+
+    public async Task<(int TokenId, string Token, bool IsPremium)?> GetByTokenAsync(string token)
     {
         var hashedValue = encryptionService.ComputeSha256(token);
         var result = await db.UserTokens
             .AsNoTracking()
             .Where(t => t.EncryptedValueHash == hashedValue)
-            .Select(t => new { t.TokenId, t.Token })
+            .Select(t => new { t.TokenId, t.Token, t.IsPremium })
             .FirstOrDefaultAsync();
 
         if (result is null)
             return null;
 
-        return (result.TokenId, encryptionService.Decrypt(result.Token));
+        return (result.TokenId, encryptionService.Decrypt(result.Token), result.IsPremium);
     }
+
+    public Task<bool> GetIsPremiumAsync(int tokenId) =>
+        db.UserTokens
+            .AsNoTracking()
+            .Where(t => t.TokenId == tokenId)
+            .Select(t => t.IsPremium)
+            .FirstOrDefaultAsync();
 }

@@ -42,11 +42,16 @@ public class UserExpenseService(
         return expense;
     }
 
-    public async Task<IReadOnlyList<ExpenseResponse>> GetExpensesAsync(int tokenId)
+    public async Task<IReadOnlyList<ExpenseResponse>> GetExpensesAsync(int tokenId, DateOnly? fromDate = null)
     {
-        var expenses = await db.Expenses
+        var query = db.Expenses
             .AsNoTracking()
-            .Where(e => e.TokenId == tokenId)
+            .Where(e => e.TokenId == tokenId);
+
+        if (fromDate.HasValue)
+            query = query.Where(e => e.ExpenseDate >= fromDate.Value);
+
+        var expenses = await query
             .OrderByDescending(e => e.ExpenseDate)
             .ToListAsync();
 

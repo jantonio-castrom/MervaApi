@@ -24,6 +24,7 @@ public class MervaDbContext(DbContextOptions<MervaDbContext> options) : DbContex
             entity.Property(e => e.Token).IsRequired().HasMaxLength(64);
             entity.Property(e => e.EncryptedValueHash).IsRequired().HasColumnType("VARBINARY(32)");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.IsPremium).HasDefaultValue(false);
             entity.HasIndex(e => e.Token).IsUnique().HasDatabaseName("UQ_UserTokens_Token");
         });
 

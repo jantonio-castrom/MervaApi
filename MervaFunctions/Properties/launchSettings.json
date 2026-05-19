@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "MervaFunctions": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7048",
+      "launchBrowser": false
+    }
+  }
+}

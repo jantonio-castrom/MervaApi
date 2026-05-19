@@ -1,13 +1,18 @@
+using MervaApi.Configuration;
 using MervaApi.Data;
 using MervaApi.Encryption.Services;
+using MervaApi.Health;
 using MervaApi.Security;
+using MervaApi.Security.RateLimit.Models;
 using MervaApi.UserExpenses.Services;
 using MervaApi.UserIncomes.Services;
 using MervaApi.UserPreferences.Services;
 using MervaApi.UserTokens.Services;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +39,19 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddFixedWindowLimiter(RateLimitPolicy.AnonymousRateLimit, limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 5;              // 5 attempts
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueLimit = 0;               // reject immediately
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    });
+});
+
 builder.Services.AddDbContext<MervaDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("MervaDb")));
 
@@ -42,6 +60,9 @@ builder.Services.AddScoped<IUserTokenService, UserTokenService>();
 builder.Services.AddScoped<IUserExpenseService, UserExpenseService>();
 builder.Services.AddScoped<IUserIncomeService, UserIncomeService>();
 builder.Services.AddScoped<IUserPreferenceService, UserPreferenceService>();
+builder.Services.Configure<LimitsOptions>(builder.Configuration.GetSection(LimitsOptions.Section));
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database");
 builder.Services.AddControllers();
 builder.Services.AddAuthentication("AnonymousToken")
     .AddScheme<AuthenticationSchemeOptions, AnonymousTokenAuthHandler>(
@@ -66,5 +87,7 @@ app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.MapControllers();
+app.MapHealthChecks("/health").AllowAnonymous();
 app.Run();
